@@ -5,6 +5,7 @@ Sample usage: python -W ignore -u create_tokenized_files.py --data-dir /scratch/
 import torch.multiprocessing as mp
 from transformers import AutoTokenizer
 import os
+from tqdm import tqdm
 import numpy as np
 import time
 import functools
@@ -60,7 +61,7 @@ def tokenize_dump(corpus, tokenization_dir,
     ind = np.zeros(shape=(len(corpus), max_len), dtype='int64')
     mask = np.zeros(shape=(len(corpus), max_len), dtype='int64')
 
-    for i in range(0, len(corpus), batch_size):
+    for i in tqdm(range(0, len(corpus), batch_size), total=len(corpus)//batch_size):
         _ids, _mask = convert(
             corpus[i: i + batch_size], tokenizer, max_len, num_threads)
         ind[i: i + _ids.shape[0], :] = _ids
@@ -93,13 +94,13 @@ def main(args):
     print(f"Dumping files in {tokenization_dir}...")
     print("Dumping for trnX...")
     tokenize_dump(
-        trnX, tokenization_dir, tokenizer, max_len, "trn_doc", args.num_threads)
+        trnX, tokenization_dir, tokenizer, max_len, "trn_doc", args.num_threads, args.batch_size)
     print("Dumping for tstX...")
     tokenize_dump(
-        tstX, tokenization_dir, tokenizer, max_len, "tst_doc", args.num_threads)
+        tstX, tokenization_dir, tokenizer, max_len, "tst_doc", args.num_threads, args.batch_size)
     print("Dumping for Y...")
     tokenize_dump(
-        Y, tokenization_dir, tokenizer, max_len, "lbl", args.num_threads)
+        Y, tokenization_dir, tokenizer, max_len, "lbl", args.num_threads, args.batch_size)
 
 
 if __name__ == "__main__":
@@ -130,6 +131,11 @@ if __name__ == "__main__":
         type=str,
         help="Dump folder inside dataset folder",
         default="")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        help="Batch size for tokenization",
+        default=10000000)
 
     args = parser.parse_args()
     main(args)
